@@ -7,7 +7,6 @@ For now it supports installation of these distributions:
 * Debian (buster)
 * Kali Nethunter (rootless)
 * Ubuntu (18.04 / 20.04)
-* Ubuntu 18.04 with i386 QEMU support
 
 ## Usage example
 
