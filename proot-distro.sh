@@ -131,6 +131,7 @@ is_distro_installed() {
 command_install() {
 	local distro_name
 	local override_alias
+	local override_arch
 	local distro_plugin_script
 
 	while (($# >= 1)); do
@@ -155,6 +156,25 @@ command_install() {
 					fi
 
 					override_alias="$1"
+				else
+					msg
+					msg "${BRED}Error: option '${YELLOW}$1${BRED}' requires an argument.${RST}"
+					command_install_help
+					return 1
+				fi
+				;;
+			--override-arch)
+				if [ $# -ge 2 ]; then
+					shift 1
+
+					if [ -z "$1" ]; then
+						msg
+						msg "${BRED}Error: argument to option '${YELLOW}--override-arch${BRED}' should not be empty.${RST}"
+						command_install_help
+						return 1
+					fi
+
+					override_arch="$1"
 				else
 					msg
 					msg "${BRED}Error: option '${YELLOW}$1${BRED}' requires an argument.${RST}"
@@ -200,12 +220,23 @@ command_install() {
 		return 1
 	fi
 
+	if [ -n "${override_arch-}" && -z "${override_alias-}" ]; then
+		override_alias="${distro_name}-${override_arch}"
+	elif [ -n "${override_arch-}" && -n "${override_alias-}" && "$override_arch" == "$override_alias" ]
+		msg
+		msg "${BRED}Error: setting alias to distro name is not supported while overiding architecture.${RST}"
+		return 1
+	fi
+
 	if [ -n "${override_alias-}" ]; then
 		if [ ! -e "${DISTRO_PLUGINS_DIR}/${override_alias}.sh" ]; then
 			msg "${BLUE}[${GREEN}*${BLUE}] ${CYAN}Creating file '${DISTRO_PLUGINS_DIR}/${override_alias}.sh'...${RST}"
 			distro_plugin_script="${DISTRO_PLUGINS_DIR}/${override_alias}.override.sh"
 			cp "${DISTRO_PLUGINS_DIR}/${distro_name}.sh" "${distro_plugin_script}"
 			sed -i "s/^\(DISTRO_NAME=\)\(.*\)\$/\1\"${SUPPORTED_DISTRIBUTIONS["$distro_name"]} (override)\"/g" "${distro_plugin_script}"
+			if [ -n "${override_arch-}" ]; then
+				echo "DISTRO_ARCH=${override_arch}" >> "${distro_plugin_script}"
+			fi
 			SUPPORTED_DISTRIBUTIONS["${override_alias}"]="${SUPPORTED_DISTRIBUTIONS["$distro_name"]}"
 			distro_name="${override_alias}"
 		else
